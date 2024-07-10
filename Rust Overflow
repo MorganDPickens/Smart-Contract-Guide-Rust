@@ -1,0 +1,58 @@
+// Example Rust Smart Contract Demonstrating Integer Overflow
+
+// The 'account' struct will simulate a simple bank account contract.
+struct Account {
+    balance: u64,
+}
+
+impl Account {
+    // Initializes a new Account with a specified balance.
+    fn new(initial_balance: u64) -> Self {
+        Account { balance: initial_balance }
+    }
+
+    // Adds money to the account balance, handling potential integer overflow.
+    fn deposit(&mut self, amount: u64) {
+        // Using Rust's wrapping_add to handle integer overflow.
+        // Wrapping add returns the result modulo 2^n, where n is the number of bits in u64.
+        self.balance = self.balance.wrapping_add(amount);
+    }
+
+    // Tries to add money to the account balance safely, checking for overflows.
+    fn deposit_checked(&mut self, amount: u64) -> Result<(), &'static str> {
+        // Using checked_add to safely handle integer overflow.
+        // checked_add returns None if overflow occurs, and Some(result) otherwise.
+        match self.balance.checked_add(amount) {
+            Some(new_balance) => {
+                self.balance = new_balance;
+                Ok(())
+            },
+            None => Err("Overflow error: Deposit would exceed maximum balance.")
+        }
+    }
+
+    // Returns the current balance of the account.
+    fn get_balance(&self) -> u64 {
+        self.balance
+    }
+}
+
+fn main() {
+    let mut account = Account::new(1_000_000_000);
+
+    // Unsafe deposit might cause overflow silently:
+    account.deposit(u64::MAX);  // This will wrap around without any error.
+    println!("Balance after unsafe deposit: {}", account.get_balance());
+
+    // Safe deposit handling overflow:
+    let deposit_result = account.deposit_checked(500_000_000);
+    match deposit_result {
+        Ok(()) => println!("Deposit successful. New balance: {}", account.get_balance()),
+        Err(e) => println!("{}", e),
+    }
+}
+
+//Comments Explanation:
+
+   // Unsafe Deposit: The deposit method uses wrapping_add, which is safe in terms of memory but can logically overflow and wrap the value around without causing a runtime error. This behavior is generally undesirable in a banking or financial context as it can lead to incorrect balances without any warnings.
+   // Safe Deposit: The deposit_checked method provides a way to safely handle integer overflow by using checked_add, which returns a Some with the new value if no overflow occurs, or None if an overflow would happen. This method then safely handles the error by returning an appropriate error message.
