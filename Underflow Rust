@@ -1,0 +1,55 @@
+// Example Rust Smart Contract Demonstrating Integer Underflow
+
+// The 'wallet' struct will simulate a simple financial contract managing a wallet balance.
+struct Wallet {
+    balance: u64,
+}
+
+impl Wallet {
+    // Initializes a new Wallet with a specific starting balance.
+    fn new(initial_balance: u64) -> Self {
+        Wallet { balance: initial_balance }
+    }
+
+    // Subtracts money from the wallet balance, handling potential integer underflow.
+    fn withdraw(&mut self, amount: u64) {
+        // Using Rust's wrapping_sub to handle integer underflow.
+        // Wrapping sub returns the result modulo 2^n, where n is the number of bits in u64.
+        self.balance = self.balance.wrapping_sub(amount);
+    }
+
+    // Tries to subtract money from the wallet balance safely, checking for underflows.
+    fn withdraw_checked(&mut self, amount: u64) -> Result<(), &'static str> {
+        // Using checked_sub to safely handle integer underflow.
+        // checked_sub returns None if underflow occurs, and Some(result) otherwise.
+        match self.balance.checked_sub(amount) {
+            Some(new_balance) => {
+                self.balance = new_balance;
+                Ok(())
+            },
+            None => Err("Underflow error: Withdrawal amount exceeds current balance.")
+        }
+    }
+
+    // Returns the current balance of the wallet.
+    fn get_balance(&self) -> u64 {
+        self.balance
+    }
+}
+
+fn main() {
+    let mut wallet = Wallet::new(500);
+
+    // Unsafe withdrawal might cause underflow silently:
+    wallet.withdraw(1000);  // This will wrap around without any error, creating a huge balance.
+    println!("Balance after unsafe withdrawal: {}", wallet.get_balance());
+
+    // Safe withdrawal handling underflow:
+    let withdrawal_result = wallet.withdraw_checked(1000);
+    match withdrawal_result {
+        Ok(()) => println!("Withdrawal successful. New balance: {}", wallet.get_balance()),
+        Err(e) => println!("{}", e),
+    }
+}
+//•	Unsafe Withdrawal: The withdraw method uses wrapping_sub, which is safe in terms of memory but can logically underflow and wrap the value around without causing a runtime error. This behavior is generally not desirable in a financial context as it can lead to massive, incorrect balances without any warnings.
+	//•	Safe Withdrawal: The withdraw_checked method provides a way to safely handle integer underflow by using checked_sub, which returns a Some with the new value if no underflow occurs, or None if an underflow would happen. This method then safely handles the error by returning an appropriate error message.
