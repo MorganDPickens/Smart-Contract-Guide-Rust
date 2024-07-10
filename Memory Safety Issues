@@ -1,0 +1,51 @@
+// Example Rust Smart Contract Demonstrating Unsafe Code and Memory Safety Issues
+
+// The 'bank' struct will be used to simulate a banking contract where balances are managed.
+struct Bank {
+    balances: Vec<i32>,
+}
+
+impl Bank {
+    // Creates a new Bank with predefined balances.
+    fn new() -> Self {
+        Bank { balances: vec![100, 150, 200] }
+    }
+
+    // This unsafe function can lead to memory safety issues if not used correctly.
+    unsafe fn get_balance_unsafe(&self, index: usize) -> &i32 {
+        // Directly accessing memory using a pointer can lead to issues:
+        // 1. Use-After-Free: If the vector is reallocated or freed elsewhere, this reference might point to freed memory.
+        // 2. Dangling Pointer: Similar to use-after-free, if the memory location is reallocated, this pointer might access unexpected data.
+        // 3. Buffer Overflow: Accessing an index that is out of bounds could lead to buffer overflow.
+        
+        self.balances.get_unchecked(index)  // Using get_unchecked allows access without bounds checking.
+    }
+
+    // A safe alternative to the unsafe function using safe Rust practices.
+    fn get_balance_safe(&self, index: usize) -> Option<&i32> {
+        // Using safe code practices to avoid memory safety issues:
+        // This method uses bounds checking to ensure the index is within the vector range.
+        self.balances.get(index)
+    }
+}
+
+fn main() {
+    let bank = Bank::new();
+    let balance_index = 1;  // A valid index for demonstration.
+
+    unsafe {
+        let balance = bank.get_balance_unsafe(balance_index);
+        println!("Unsafe Balance at index {}: {}", balance_index, balance);
+    }
+
+    // Safe alternative usage:
+    match bank.get_balance_safe(balance_index) {
+        Some(balance) => println!("Safe Balance at index {}: {}", balance_index, balance),
+        None => println!("No balance found at index {}.", balance_index),
+    }
+}
+Comments Explanation:
+
+    Unsafe Code: The get_balance_unsafe method is marked as unsafe because it uses get_unchecked, a method that skips bounds checking on the vector. This can lead to accessing invalid memory if the index is out of bounds.
+    Use-After-Free, Dangling Pointers, Buffer Overflows: These issues arise when pointers or references are mismanaged. Rust’s ownership system usually prevents this, but using unsafe blocks bypasses these checks.
+    Safe Alternative: The get_balance_safe method provides an example of how to access elements in a way that respects Rust's safety guarantees. It uses get, which returns None if the index is out of bounds, avoiding potential security and safety issues.
